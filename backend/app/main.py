@@ -10,6 +10,7 @@ from app.routers.chat import router as chat_router
 from app.routers.conversations import router as conversations_router
 from app.routers.documents import router as documents_router
 from app.routers.quizzes import router as quizzes_router
+from app.routers.speech import router as speech_router
 from app.schemas import ErrorResponse, HealthResponse
 from app.vector_store import init_chroma
 
@@ -35,6 +36,7 @@ app.include_router(documents_router)
 app.include_router(conversations_router)
 app.include_router(chat_router)
 app.include_router(quizzes_router)
+app.include_router(speech_router)
 
 
 @app.exception_handler(StarletteHTTPException)

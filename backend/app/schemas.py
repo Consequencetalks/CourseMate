@@ -130,3 +130,7 @@ class QuizDetail(BaseModel):
     created_at: datetime
     questions: list[PublicQuestion]
     result: QuizResult | None = None
+
+
+class SpeechText(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)

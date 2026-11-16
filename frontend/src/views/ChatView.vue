@@ -1,12 +1,23 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { listDocuments } from "../api/documents";
 import { createConversation, listConversations, listMessages, streamChat } from "../api/chat";
 import MessageItem from "../components/MessageItem.vue";
+import {
+  cancelRecognition,
+  finishLiveSpeech,
+  finishRecognition,
+  onSpeechError,
+  pushLiveSpeech,
+  recognitionSupported,
+  startRecognition,
+  stopSpeaking,
+} from "../speech";
 import { useChatStore } from "../stores/chat";
 import type { DocumentOut, MessageOut } from "../types";
 
 const STORAGE_KEY = "coursemate.chatId";
+const SPEAK_KEY = "coursemate.speech.speak";
 const store = useChatStore();
 const documents = ref<DocumentOut[]>([]);
 const selected = ref<string[]>([]);
@@ -15,6 +26,13 @@ const starting = ref(false);
 const pendingUser = ref<MessageOut | null>(null);
 const pendingAssistant = ref<MessageOut | null>(null);
 const thread = ref<HTMLElement | null>(null);
+const listening = ref(false);
+const speechError = ref("");
+const draftBeforeListen = ref("");
+const readAnswers = ref(localStorage.getItem(SPEAK_KEY) === "1");
+const voiceInputReady = recognitionSupported();
+let listenSession = 0;
+let alive = true;
 
 const availableIds = computed(() => documents.value.map((document) => document.id));
 const current = computed(() => store.conversations.find((item) => item.id === store.currentId));
@@ -62,6 +80,25 @@ watch(
   () => scrollDown(),
 );
 
+watch(readAnswers, (enabled) => {
+  localStorage.setItem(SPEAK_KEY, enabled ? "1" : "0");
+  if (!enabled) {
+    stopSpeaking();
+  }
+});
+
+onMounted(() => {
+  onSpeechError((message) => {
+    speechError.value = message;
+  });
+});
+
+onUnmounted(() => {
+  alive = false;
+  abandonListening();
+  stopSpeaking();
+});
+
 async function loadDocuments() {
   documents.value = await listDocuments();
 }
@@ -74,6 +111,8 @@ async function openConversation(id: string) {
   if (store.generating) {
     return;
   }
+  abandonListening();
+  stopSpeaking();
   store.currentId = id;
   store.error = "";
   pendingUser.value = null;
@@ -86,6 +125,8 @@ function showPicker() {
   if (store.generating) {
     return;
   }
+  abandonListening();
+  stopSpeaking();
   store.currentId = "";
   store.messages = [];
   store.error = "";
@@ -112,11 +153,57 @@ async function startChat() {
   }
 }
 
+function abandonListening() {
+  listenSession += 1;
+  listening.value = false;
+  cancelRecognition();
+}
+
+function toggleMic() {
+  if (listening.value) {
+    finishRecognition();
+    return;
+  }
+  if (!voiceInputReady || store.generating || scopeMissing.value) {
+    return;
+  }
+  const session = listenSession + 1;
+  listenSession = session;
+  speechError.value = "";
+  draftBeforeListen.value = draft.value;
+  listening.value = true;
+  stopSpeaking();
+  startRecognition({
+    onText(text) {
+      if (session !== listenSession) {
+        return;
+      }
+      draft.value = text;
+    },
+    onError(message) {
+      if (session !== listenSession) {
+        return;
+      }
+      speechError.value = message;
+    },
+    onEnd(finalText) {
+      if (session !== listenSession) {
+        return;
+      }
+      listening.value = false;
+      draft.value = finalText || draftBeforeListen.value;
+    },
+  });
+}
+
 async function send() {
   const text = draft.value.trim();
   if (!store.currentId || store.generating || scopeMissing.value || !text || text.length > 2000) {
     return;
   }
+  abandonListening();
+  stopSpeaking();
+  speechError.value = "";
   draft.value = "";
   store.generating = true;
   store.error = "";
@@ -134,27 +221,36 @@ async function send() {
     citations: [],
     created_at: new Date().toISOString(),
   };
-  let outcome: "done" | "error" | "dropped" = "dropped";
+  const outcome: { kind: "done" | "error" | "dropped" } = { kind: "dropped" };
   try {
     await streamChat(store.currentId, text, {
       onDelta(delta) {
         if (pendingAssistant.value) {
           pendingAssistant.value.content += delta;
+          if (readAnswers.value) {
+            pushLiveSpeech(pendingAssistant.value.content);
+          }
         }
       },
       onDone() {
-        outcome = "done";
+        outcome.kind = "done";
       },
       onError(error) {
-        outcome = "error";
+        outcome.kind = "error";
         store.error = error.message;
       },
     });
   } catch (err) {
-    outcome = "dropped";
+    outcome.kind = "dropped";
     store.error = err instanceof Error ? err.message : "The reply failed.";
   }
-  if (outcome === "done") {
+  const spoken = pendingAssistant.value?.content ?? "";
+  if (outcome.kind === "done") {
+    if (alive && readAnswers.value && spoken) {
+      finishLiveSpeech(spoken);
+    } else {
+      stopSpeaking();
+    }
     pendingUser.value = null;
     pendingAssistant.value = null;
     try {
@@ -164,6 +260,7 @@ async function send() {
       store.error = err instanceof Error ? err.message : "Could not refresh the chat.";
     }
   } else {
+    stopSpeaking();
     pendingUser.value = null;
     pendingAssistant.value = null;
     draft.value = text;
@@ -232,24 +329,40 @@ function scrollDown() {
           :key="message.id"
           :message="message"
           :available-ids="availableIds"
+          :speakable="true"
         />
         <MessageItem v-if="pendingUser" :message="pendingUser" :available-ids="availableIds" />
         <MessageItem v-if="pendingAssistant" :message="pendingAssistant" :available-ids="availableIds" />
       </div>
       <el-alert v-if="store.error" class="alert" :title="store.error" type="error" show-icon :closable="false" />
       <div class="composer">
-        <el-input
-          v-model="draft"
-          type="textarea"
-          :rows="3"
-          maxlength="2000"
-          show-word-limit
-          placeholder="Ask a question about the selected documents"
-          :disabled="store.generating || scopeMissing"
-        />
-        <el-button type="primary" :disabled="store.generating || scopeMissing || !draft.trim()" @click="send">
-          Send
-        </el-button>
+        <div class="speech-bar">
+          <el-switch v-model="readAnswers" active-text="Read answers" />
+          <span v-if="!voiceInputReady" class="speech-note">Voice input needs a browser microphone.</span>
+        </div>
+        <el-alert v-if="speechError" class="alert" :title="speechError" type="warning" show-icon :closable="false" />
+        <div class="composer-row">
+          <el-input
+            v-model="draft"
+            type="textarea"
+            :rows="3"
+            maxlength="2000"
+            show-word-limit
+            placeholder="Ask a question about the selected documents"
+            :disabled="store.generating || scopeMissing"
+          />
+          <el-button
+            :disabled="!voiceInputReady || store.generating || scopeMissing"
+            :title="voiceInputReady ? (listening ? 'Stop voice input' : 'Start voice input') : 'Voice input needs a browser microphone.'"
+            :aria-pressed="listening"
+            @click="toggleMic"
+          >
+            {{ listening ? "Stop" : "Mic" }}
+          </el-button>
+          <el-button type="primary" :disabled="store.generating || scopeMissing || !draft.trim()" @click="send">
+            Send
+          </el-button>
+        </div>
       </div>
     </div>
   </section>
@@ -296,19 +409,35 @@ function scrollDown() {
 }
 
 .messages {
-  max-height: calc(100vh - 320px);
+  max-height: calc(100vh - 380px);
   overflow: auto;
 }
 
 .composer {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  align-items: flex-end;
   margin-top: 12px;
 }
 
-.composer .el-input {
+.speech-bar,
+.composer-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.composer-row {
+  align-items: flex-end;
+}
+
+.composer-row .el-input {
   flex: 1;
+}
+
+.speech-note {
+  color: #606266;
+  font-size: 13px;
 }
 
 .alert {
