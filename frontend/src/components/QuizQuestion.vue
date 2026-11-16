@@ -8,9 +8,10 @@ const props = defineProps<{
   selected: string;
   disabled: boolean;
   availableIds: string[];
+  asking?: boolean;
 }>();
 
-const emit = defineEmits<{ select: [value: string] }>();
+const emit = defineEmits<{ select: [value: string]; ask: [] }>();
 const sourcesOpen = ref(false);
 const letters = ["A", "B", "C", "D"] as const;
 const result = computed(() => ("correct" in props.question ? props.question : null));
@@ -35,6 +36,15 @@ function choose(value: string | number | boolean | undefined) {
       <p class="verdict" :class="{ correct: result.correct }">
         {{ result.correct ? "Correct" : `Correct answer: ${result.correct_option}` }}
       </p>
+      <button
+        v-if="!result.correct"
+        type="button"
+        class="sources-toggle"
+        :disabled="asking"
+        @click="emit('ask')"
+      >
+        Ask about this
+      </button>
       <p class="explanation">{{ result.explanation }}</p>
       <SourceCard
         v-if="citations.length === 1"
@@ -104,5 +114,10 @@ function choose(value: string | number | boolean | undefined) {
   font-size: 13px;
   line-height: 1.4;
   cursor: pointer;
+}
+
+.sources-toggle:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 </style>

@@ -136,6 +136,7 @@ def test_legal_quiz_hides_answers(client, monkeypatch):
     detail = client.get(f"/api/quizzes/{created['id']}")
     assert detail.status_code == 200
     assert detail.json()["result"] is None
+    assert detail.json()["document_ids"] == ["doc-1"]
     assert set(detail.json()["questions"][0]) == {"id", "stem", "options"}
     with db.SessionLocal() as session:
         stored = session.get(Quiz, created["id"])

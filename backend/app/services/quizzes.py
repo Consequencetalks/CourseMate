@@ -250,6 +250,7 @@ def _load(quiz_id: str) -> tuple[dict, list[dict] | None]:
             "id": quiz.id,
             "topic": quiz.topic,
             "language": quiz.language,
+            "document_ids": list(quiz.document_ids),
             "created_at": quiz.created_at,
             "questions": list(quiz.questions),
         }
@@ -290,6 +291,7 @@ def get_quiz(quiz_id: str) -> QuizDetail:
         id=quiz["id"],
         topic=quiz["topic"],
         language=quiz["language"],
+        document_ids=quiz["document_ids"],
         created_at=quiz["created_at"],
         questions=[_public(question) for question in quiz["questions"]],
         result=_result(quiz["questions"], answers) if answers is not None else None,

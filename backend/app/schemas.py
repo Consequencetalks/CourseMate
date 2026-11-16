@@ -127,6 +127,7 @@ class QuizDetail(BaseModel):
     id: str
     topic: str
     language: str
+    document_ids: list[str]
     created_at: datetime
     questions: list[PublicQuestion]
     result: QuizResult | None = None

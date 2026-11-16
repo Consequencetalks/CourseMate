@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+import { createConversation } from "../api/chat";
 import { listDocuments } from "../api/documents";
 import { createQuiz, getQuiz, listQuizzes, submitQuiz } from "../api/quizzes";
 import QuizQuestion from "../components/QuizQuestion.vue";
-import type { DocumentOut, QuizDetail, QuizSummary } from "../types";
+import { askText } from "../quizAsk";
+import type { DocumentOut, PublicQuestion, QuestionResult, QuizDetail, QuizSummary } from "../types";
+
+const ASK_KEY = "coursemate.askOnce";
+const router = useRouter();
 
 const STORAGE_KEY = "coursemate.quizId";
 const documents = ref<DocumentOut[]>([]);
@@ -16,6 +22,7 @@ const detail = ref<QuizDetail | null>(null);
 const picks = ref<Record<string, string>>({});
 const generating = ref(false);
 const submitting = ref(false);
+const asking = ref(false);
 const error = ref("");
 
 const availableIds = computed(() => documents.value.map((document) => document.id));
@@ -126,6 +133,34 @@ async function submit() {
 function choose(id: string, option: string) {
   picks.value = { ...picks.value, [id]: option };
 }
+
+async function askAbout(question: PublicQuestion | QuestionResult) {
+  if (!detail.value || asking.value || !("correct" in question) || question.correct) {
+    return;
+  }
+  const missing = detail.value.document_ids.some((id) => !availableIds.value.includes(id));
+  if (missing) {
+    error.value = "A selected document was deleted. This question cannot be asked.";
+    return;
+  }
+  const text = askText(detail.value.language, question);
+  if (!text) {
+    error.value = "This question is too long to ask.";
+    return;
+  }
+  asking.value = true;
+  error.value = "";
+  try {
+    const created = await createConversation(detail.value.document_ids);
+    sessionStorage.setItem(ASK_KEY, JSON.stringify({ conversationId: created.id, text }));
+    await router.push("/chat");
+  } catch (err) {
+    sessionStorage.removeItem(ASK_KEY);
+    error.value = err instanceof Error ? err.message : "Could not ask about this question.";
+  } finally {
+    asking.value = false;
+  }
+}
 </script>
 
 <template>
@@ -182,7 +217,9 @@ function choose(id: string, option: string) {
         :selected="picks[question.id] ?? ''"
         :disabled="Boolean(detail.result) || submitting"
         :available-ids="availableIds"
+        :asking="asking"
         @select="choose(question.id, $event)"
+        @ask="askAbout(question)"
       />
       <el-button
         v-if="!detail.result"

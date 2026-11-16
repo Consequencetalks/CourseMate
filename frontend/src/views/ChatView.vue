@@ -17,6 +17,7 @@ import { useChatStore } from "../stores/chat";
 import type { DocumentOut, MessageOut } from "../types";
 
 const STORAGE_KEY = "coursemate.chatId";
+const ASK_KEY = "coursemate.askOnce";
 const SPEAK_KEY = "coursemate.speech.speak";
 const store = useChatStore();
 const documents = ref<DocumentOut[]>([]);
@@ -53,8 +54,14 @@ const scopeLabel = computed(() => {
 });
 
 onMounted(async () => {
+  const ask = takeAsk();
   try {
     await Promise.all([loadDocuments(), loadConversations()]);
+    if (ask) {
+      await openConversation(ask.conversationId);
+      await send(ask.text);
+      return;
+    }
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved && store.conversations.some((item) => item.id === saved)) {
       await openConversation(saved);
@@ -196,8 +203,25 @@ function toggleMic() {
   });
 }
 
-async function send() {
-  const text = draft.value.trim();
+function takeAsk(): { conversationId: string; text: string } | null {
+  const raw = sessionStorage.getItem(ASK_KEY);
+  if (!raw) {
+    return null;
+  }
+  sessionStorage.removeItem(ASK_KEY);
+  try {
+    const payload = JSON.parse(raw) as { conversationId?: unknown; text?: unknown };
+    if (typeof payload.conversationId === "string" && typeof payload.text === "string" && payload.text.trim()) {
+      return { conversationId: payload.conversationId, text: payload.text.trim() };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+async function send(preset?: string) {
+  const text = (preset ?? draft.value).trim();
   if (!store.currentId || store.generating || scopeMissing.value || !text || text.length > 2000) {
     return;
   }

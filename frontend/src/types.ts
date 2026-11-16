@@ -97,6 +97,7 @@ export interface QuizDetail {
   id: string;
   topic: string;
   language: string;
+  document_ids: string[];
   created_at: string;
   questions: PublicQuestion[];
   result: QuizResult | null;
