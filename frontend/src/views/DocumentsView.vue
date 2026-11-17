@@ -71,18 +71,19 @@ async function removeDocument(row: DocumentOut) {
 
 <template>
   <section class="page documents-page">
-    <h1>Documents</h1>
-    <p>Upload one course PDF at a time. The file is indexed after text is extracted.</p>
-    <el-upload
-      ref="uploadRef"
-      :auto-upload="false"
-      :show-file-list="false"
-      :disabled="uploading"
-      accept="application/pdf,.pdf"
-      :on-change="onFile"
-    >
-      <el-button type="primary" :loading="uploading" :disabled="uploading">Upload PDF</el-button>
-    </el-upload>
+    <div class="documents-heading">
+      <h1>Documents</h1>
+      <el-upload
+        ref="uploadRef"
+        :auto-upload="false"
+        :show-file-list="false"
+        :disabled="uploading"
+        accept="application/pdf,.pdf"
+        :on-change="onFile"
+      >
+        <el-button type="primary" size="large" :loading="uploading" :disabled="uploading">Upload PDF</el-button>
+      </el-upload>
+    </div>
     <el-alert v-if="message" class="notice" type="success" :title="message" show-icon :closable="false" />
     <el-alert
       v-for="warning in warnings"

@@ -148,7 +148,7 @@ textarea,
 .header-bar {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
   box-sizing: border-box;
   width: min(100% - 1.5rem, var(--cm-workspace));
   min-height: 3.5rem;
@@ -180,6 +180,7 @@ textarea,
 }
 
 .app-header .el-menu--horizontal > .el-menu-item {
+  padding: 0 2rem;
   font-family: var(--cm-sans);
   font-size: 0.95rem;
   border-bottom: 2px solid transparent;
@@ -232,6 +233,16 @@ textarea,
   line-clamp: 2;
 }
 
+.chat-page .thread h1 {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
 .page p {
   line-height: 1.6;
 }
@@ -247,9 +258,15 @@ textarea,
   background: var(--cm-paper);
 }
 
-.documents-page > p {
-  margin-top: 0;
-  color: #3a4541;
+.documents-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.documents-heading h1 {
+  margin-bottom: 0;
 }
 
 .documents-page .notice {
@@ -258,7 +275,7 @@ textarea,
 
 .documents-page .document-table {
   width: 100%;
-  margin-top: 1.5rem;
+  margin-top: 3rem;
   --el-table-border-color: transparent;
   --el-table-header-bg-color: transparent;
   --el-table-bg-color: transparent;
@@ -276,7 +293,7 @@ textarea,
 
 .documents-page .el-table th.el-table__cell {
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: 1rem;
   background: transparent;
   border-bottom: 1px solid var(--cm-line);
 }
@@ -537,7 +554,7 @@ textarea,
 .role {
   margin: 0 0 0.2rem;
   font-family: var(--cm-sans);
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--cm-muted);
 }
@@ -694,30 +711,49 @@ textarea,
 }
 
 .composer-row {
-  display: flex;
-  gap: 0.55rem;
-  align-items: flex-end;
+  --cm-composer-btn: 6.75rem;
+  --cm-composer-gap: 0.4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.55rem;
+  row-gap: var(--cm-composer-gap);
+  align-items: stretch;
+}
+
+.composer-row > .el-textarea {
+  grid-row: 1 / span 2;
+  height: 100%;
+  min-height: 0;
 }
 
 .composer-actions {
   display: flex;
-  flex: 0 0 auto;
-  flex-direction: column;
-  justify-content: flex-end;
-  gap: 0.35rem;
+  grid-column: 2;
+  grid-row: 2;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--cm-composer-gap);
 }
 
 .composer-actions .el-button {
-  width: 100%;
+  width: var(--cm-composer-btn);
   margin-left: 0;
 }
 
 .read-toggle {
   display: flex;
+  grid-column: 2;
+  grid-row: 1;
   align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: calc(var(--cm-composer-btn) * 2 + var(--cm-composer-gap));
+  height: 32px;
   gap: 0.45rem;
   color: var(--cm-ink);
-  font-size: 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
 }
@@ -728,7 +764,6 @@ textarea,
 
 .composer-row .el-input,
 .composer-row .el-textarea {
-  flex: 1;
   min-width: 0;
 }
 
@@ -737,6 +772,9 @@ textarea,
 }
 
 .composer .el-textarea__inner {
+  height: 100%;
+  min-height: 0;
+  resize: none;
   background: var(--cm-desk);
   border: 1px solid var(--cm-line);
   border-radius: var(--cm-radius-control);

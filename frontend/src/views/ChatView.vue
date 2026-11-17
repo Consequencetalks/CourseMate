@@ -368,15 +368,13 @@ function scrollDown() {
             type="textarea"
             :rows="2"
             maxlength="2000"
-            show-word-limit
-            placeholder="Ask a question about the selected documents"
             :disabled="store.generating || scopeMissing"
           />
+          <div class="read-toggle">
+            <el-switch v-model="readAnswers" aria-label="Read" />
+            <span @click="readAnswers = !readAnswers">Read</span>
+          </div>
           <div class="composer-actions">
-            <div class="read-toggle">
-              <el-switch v-model="readAnswers" aria-label="Read answers" />
-              <span @click="readAnswers = !readAnswers">Read answers</span>
-            </div>
             <el-button
               :disabled="!voiceInputReady || store.generating || scopeMissing"
               :title="voiceInputReady ? (listening ? 'Stop voice input' : 'Start voice input') : 'Voice input needs a browser microphone.'"
