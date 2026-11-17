@@ -313,6 +313,7 @@ function scrollDown() {
         type="button"
         class="history-item"
         :class="{ active: item.id === store.currentId }"
+        :title="item.title"
         :disabled="store.generating"
         @click="openConversation(item.id)"
       >
@@ -337,7 +338,7 @@ function scrollDown() {
     </div>
 
     <div v-else class="thread">
-      <h1>{{ currentTitle }}</h1>
+      <h1 :title="currentTitle">{{ currentTitle }}</h1>
       <p class="scope">{{ scopeLabel }}</p>
       <el-alert
         v-if="scopeMissing"
@@ -360,111 +361,36 @@ function scrollDown() {
       </div>
       <el-alert v-if="store.error" class="alert" :title="store.error" type="error" show-icon :closable="false" />
       <div class="composer">
-        <div class="speech-bar">
-          <el-switch v-model="readAnswers" active-text="Read answers" />
-          <span v-if="!voiceInputReady" class="speech-note">Voice input needs a browser microphone.</span>
-        </div>
         <el-alert v-if="speechError" class="alert" :title="speechError" type="warning" show-icon :closable="false" />
         <div class="composer-row">
           <el-input
             v-model="draft"
             type="textarea"
-            :rows="3"
+            :rows="2"
             maxlength="2000"
             show-word-limit
             placeholder="Ask a question about the selected documents"
             :disabled="store.generating || scopeMissing"
           />
-          <el-button
-            :disabled="!voiceInputReady || store.generating || scopeMissing"
-            :title="voiceInputReady ? (listening ? 'Stop voice input' : 'Start voice input') : 'Voice input needs a browser microphone.'"
-            :aria-pressed="listening"
-            @click="toggleMic"
-          >
-            {{ listening ? "Stop" : "Mic" }}
-          </el-button>
-          <el-button type="primary" :disabled="store.generating || scopeMissing || !draft.trim()" @click="send">
-            Send
-          </el-button>
+          <div class="composer-actions">
+            <div class="read-toggle">
+              <el-switch v-model="readAnswers" aria-label="Read answers" />
+              <span @click="readAnswers = !readAnswers">Read answers</span>
+            </div>
+            <el-button
+              :disabled="!voiceInputReady || store.generating || scopeMissing"
+              :title="voiceInputReady ? (listening ? 'Stop voice input' : 'Start voice input') : 'Voice input needs a browser microphone.'"
+              :aria-pressed="listening"
+              @click="toggleMic"
+            >
+              {{ listening ? "Stop" : "Mic" }}
+            </el-button>
+            <el-button type="primary" :disabled="store.generating || scopeMissing || !draft.trim()" @click="send">
+              Send
+            </el-button>
+          </div>
         </div>
       </div>
     </div>
   </section>
 </template>
-
-<style scoped>
-.chat-page {
-  max-width: none;
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.history {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: calc(100vh - 140px);
-  overflow: auto;
-}
-
-.history-item {
-  display: block;
-  width: 100%;
-  padding: 8px;
-  overflow: hidden;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.history-item.active {
-  background: #ecf5ff;
-}
-
-.empty,
-.scope {
-  color: #606266;
-}
-
-.messages {
-  max-height: calc(100vh - 380px);
-  overflow: auto;
-}
-
-.composer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.speech-bar,
-.composer-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.composer-row {
-  align-items: flex-end;
-}
-
-.composer-row .el-input {
-  flex: 1;
-}
-
-.speech-note {
-  color: #606266;
-  font-size: 13px;
-}
-
-.alert {
-  margin: 12px 0;
-}
-</style>

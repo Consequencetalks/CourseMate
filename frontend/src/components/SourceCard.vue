@@ -22,23 +22,3 @@ const label = computed(
     <span v-else>{{ label }} · File unavailable</span>
   </p>
 </template>
-
-<style scoped>
-.source-card {
-  margin: 4px 0 0;
-  padding: 2px 8px;
-  border-left: 2px solid #409eff;
-  background: #fafafa;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.source-card a {
-  color: #409eff;
-  text-decoration: none;
-}
-
-.source-card span {
-  color: #606266;
-}
-</style>

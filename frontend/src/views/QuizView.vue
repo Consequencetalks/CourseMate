@@ -174,6 +174,7 @@ async function askAbout(question: PublicQuestion | QuestionResult) {
         type="button"
         class="history-item"
         :class="{ active: item.id === currentId }"
+        :title="item.topic"
         :disabled="generating || submitting"
         @click="openQuiz(item.id)"
       >
@@ -208,7 +209,7 @@ async function askAbout(question: PublicQuestion | QuestionResult) {
     </div>
 
     <div v-else class="thread">
-      <h1>{{ detail.topic }}</h1>
+      <h1 :title="detail.topic">{{ detail.topic }}</h1>
       <p v-if="detail.result" class="score">Score: {{ detail.result.correct_count }} / {{ detail.result.total }}</p>
       <QuizQuestion
         v-for="question in questions"
@@ -233,64 +234,3 @@ async function askAbout(question: PublicQuestion | QuestionResult) {
     </div>
   </section>
 </template>
-
-<style scoped>
-.quiz-page {
-  max-width: none;
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.history {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: calc(100vh - 140px);
-  overflow: auto;
-}
-
-.history-item {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  padding: 8px;
-  text-align: left;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.history-item.active {
-  background: #ecf5ff;
-}
-
-.topic {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.state,
-.empty {
-  color: #606266;
-  font-size: 12px;
-}
-
-.thread .el-input,
-.thread .el-radio-group,
-.thread .el-checkbox {
-  display: flex;
-  margin-bottom: 12px;
-}
-
-.score {
-  font-weight: 700;
-}
-
-.alert {
-  margin: 12px 0;
-}
-</style>

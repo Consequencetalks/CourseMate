@@ -107,17 +107,3 @@ async function removeDocument(row: DocumentOut) {
     </el-table>
   </section>
 </template>
-
-<style scoped>
-.documents-page {
-  max-width: 880px;
-}
-
-.notice {
-  margin-top: 16px;
-}
-
-.document-table {
-  margin-top: 20px;
-}
-</style>
