@@ -221,7 +221,7 @@ function takeAsk(): { conversationId: string; text: string } | null {
 }
 
 async function send(preset?: string) {
-  const text = (preset ?? draft.value).trim();
+  const text = (typeof preset === "string" ? preset : draft.value).trim();
   if (!store.currentId || store.generating || scopeMissing.value || !text || text.length > 2000) {
     return;
   }
@@ -383,7 +383,7 @@ function scrollDown() {
             >
               {{ listening ? "Stop" : "Mic" }}
             </el-button>
-            <el-button type="primary" :disabled="store.generating || scopeMissing || !draft.trim()" @click="send">
+            <el-button type="primary" :disabled="store.generating || scopeMissing || !draft.trim()" @click="send()">
               Send
             </el-button>
           </div>
